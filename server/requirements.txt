@@ -1,0 +1,9 @@
+flask
+numpy
+imageio
+Pillow
+nltk
+h5py
+imageio
+torchvision
+torch

@@ -9,7 +9,36 @@ from imageio import imread
 from PIL import Image
 import PIL
 import torch
+from torch import nn
+import model
 
+
+
+def load_models(checkpoint_name=None, encoded_image_size=None,
+                word_embeddings_dim=None, attention_dim=None,
+                decoder_hidden_size=None, vocab_size=None, device=None):
+    loss_fn = nn.CrossEntropyLoss().to(device)
+    end_epoch = 10_000
+    if checkpoint_name == None:
+        start_epoch = 0
+        enc = model.Encoder(encoded_image_size=encoded_image_size).to(device)
+        dec = model.Decoder(vocab_size=vocab_size,
+                            word_embeddings_dim=word_embeddings_dim,
+                            attention_dim=attention_dim,
+                            decoder_hidden_size=decoder_hidden_size,
+                            encoded_image_size=encoded_image_size).to(device)
+
+        optimizer_decoder = torch.optim.Adam(enc.parameters(), lr=4e-4)
+        optimizer_encoder = torch.optim.Adam(dec.parameters(), lr=1e-4)
+    else:
+        checkpoint = torch.load(checkpoint_name)
+        start_epoch = checkpoint['epoch']
+        dec = checkpoint['decoder']
+        optimizer_decoder = checkpoint['decoder_optimizer']
+        enc = checkpoint['encoder']
+        optimizer_encoder = checkpoint['encoder_optimizer']
+
+    return start_epoch, end_epoch, loss_fn, enc, dec, optimizer_encoder, optimizer_decoder
 
 
 def save_checkpoint(epoch, batch_n, encoder, decoder, encoder_optimizer, decoder_optimizer):
@@ -31,7 +60,7 @@ def save_checkpoint(epoch, batch_n, encoder, decoder, encoder_optimizer, decoder
              'decoder': decoder,
              'encoder_optimizer': encoder_optimizer,
              'decoder_optimizer': decoder_optimizer}
-    filename = 'checkpoint_' + str(epoch) + '_' + str(batch_n) + '.pth.tar'
+    filename = 'models/' + 'checkpoint_' + str(epoch) + '_' + str(batch_n) + '.pth.tar'
     torch.save(state, filename)
 
 

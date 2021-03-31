@@ -1,0 +1,9 @@
+*.tar
+.idea
+.ipynb_checkpoints
+__pycache__
+data
+images
+*.png
+*.mp4
+*.archieve

@@ -36,19 +36,19 @@ class Attention(nn.Module):
     def __init__(self, word_embeddings_dim, attention_dim, encoded_image_size):
         super(Attention, self).__init__()
 
-        self.att_encoder = torch.nn.Linear(2048, 1)
+        self.att_encoder = nn.Linear(2048, attention_dim)
         self.att_decoder = torch.nn.Linear(word_embeddings_dim, attention_dim)
-        self.att_final = torch.nn.Linear((attention_dim + encoded_image_size**2), 2048)
+        self.att_final = torch.nn.Linear(attention_dim, 1)
         self.softmax = nn.Softmax(dim = 1)
+        self.relu = nn.ReLU()
 
     def forward(self, encoder_out, decoder_out, batch_size):
-        att_encoder_computed = self.att_encoder(encoder_out)  # (batch_size, encoded_image_size**2, 1)
+        att_encoder_computed = self.att_encoder(encoder_out)  # (batch_size, encoded_image_size**2, attention_dim)
         att_decoder_computed = self.att_decoder(decoder_out)  # (batch_size, attention_dim)
-        att = torch.cat((att_encoder_computed.squeeze(2).view(batch_size, -1), att_decoder_computed), 1)  # (batch_size, encoded_image_size**2)
-        att_final_computed = self.att_final(att)  # (batch_size, 2048)
-        att_weights = self.softmax(att_final_computed)  # (batch_size, 2048)
+        att = self.att_final(self.relu(att_encoder_computed + att_decoder_computed.unsqueeze(1))).squeeze(2)  # (batch_size, encoded_image_size**2)
+        att_weights = self.softmax(att)  # (batch_size, 2048)
 
-        encoder_weighted = (att_weights.unsqueeze(1) * encoder_out).sum(dim=2)  # (batch_size, encoded_image_size**2)
+        encoder_weighted = (encoder_out * att_weights.unsqueeze(2)).sum(dim=1)  # (batch_size, encoder_dim)
         return encoder_weighted
 
 
@@ -63,18 +63,18 @@ class Decoder(nn.Module):
         self.vocab_size = vocab_size
         self.encoded_image_size = encoded_image_size
 
-        self.LSTMCell = torch.nn.LSTMCell(input_size=word_embeddings_dim + encoded_image_size**2,
-                                          hidden_size=decoder_hidden_size)
+        self.LSTMCell = torch.nn.LSTMCell(2048 + word_embeddings_dim,
+                                          hidden_size=decoder_hidden_size, bias = True)
         self.embedding = nn.Embedding(num_embeddings=vocab_size, embedding_dim=word_embeddings_dim)
         self.Attention = Attention(word_embeddings_dim, attention_dim, encoded_image_size)
         self.linear = torch.nn.Linear(decoder_hidden_size, vocab_size)
 
         self.h_init = torch.nn.Linear(2048, decoder_hidden_size)
         self.c_init = torch.nn.Linear(2048, decoder_hidden_size)
+        self.f_beta = nn.Linear(decoder_hidden_size, 2048)  # linear layer to create a sigmoid-activated gate
+        self.sigmoid = nn.Sigmoid()
 
-## Реализация из статьи
-#        self.h_init = torch.nn.Linear(encoded_image_size**2, decoder_hidden_size)
-#        self.c_init = torch.nn.Linear(encoded_image_size**2, decoder_hidden_size)
+
 
     def forward(self, captions, encoder_out, captions_lengths):
 
@@ -98,10 +98,6 @@ class Decoder(nn.Module):
         h = self.h_init(encoder_out.mean(dim = 1)) # (batch_size, decoder_hidden_size)
         c = self.c_init(encoder_out.mean(dim = 1)) # (batch_size, decoder_hidden_size)
 
-        ## реализация из статьи
-        # Инициализируем вектора LSTM для первого слова (с помощью картинки)
-#        h = self.h_init(encoder_out.mean(dim = 2)) # (batch_size, decoder_hidden_size)
-#        c = self.c_init(encoder_out.mean(dim = 2)) # (batch_size, decoder_hidden_size)
 
         for word_n in range(1, max(captions_lengths)):
             # Количество наблюдений, для которых длина предложения больше заданной длины
@@ -115,6 +111,9 @@ class Decoder(nn.Module):
             encoder_weighted = self.Attention(batch_size = batch_size_n,
                                               encoder_out = encoder_out[:batch_size_n],
                                               decoder_out = decoder_out[:batch_size_n]) # (batch_size, encoded_image_size**2)
+
+            gate = self.sigmoid(self.f_beta(h[:batch_size_n]))  # gating scalar, (batch_size_t, encoder_dim)
+            encoder_weighted = gate * encoder_weighted
 
             # Конкатенируем информцию из механизма внимания и информацию о предыдущем слове
             decoder_in = torch.cat((encoder_weighted, decoder_out[:batch_size_n]), 1) # (batch_size, encoded_image_size**2 + word_embeddings_dim)
