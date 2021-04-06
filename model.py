@@ -7,26 +7,30 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 class Encoder(nn.Module):
 
     def __init__(self, encoded_image_size=14):
+        '''
+        :param encoded_image_size: each encoded channel size of image will be encoded_image_size X encoded_image_size
+        '''
+
         super(Encoder, self).__init__()
         self.enc_image_size = encoded_image_size
-
-        # Загружаем натренированную resnet152
+        # Load pretrained resnet model
         resnet = torchvision.models.resnet152(pretrained=True)
-        # Убираем линейные слои (нам нужны только CNN)
+        # Delete FC layers and leave only CNN
         modules = list(resnet.children())[:-2]
         self.resnet = nn.Sequential(*modules)
-        # Ресайз фичей изображения к нужным размерам
+        # Resize CNN features from resnet to appropriate size
         self.pooling = nn.AdaptiveAvgPool2d((encoded_image_size, encoded_image_size))
+        # Resnet parameters will not be modified during training
         for p in self.resnet.parameters():
             p.requires_grad = False
 
     def forward(self, images):
 
-        # Извлекаем 2048 "каналов" фичей по 7X7 каждый
+        # Obtain 2048 channels of features each of size 7X7
         out = self.resnet(images)  # (batch_size, 2048, 7, 7)
-        # Изменяем размер каналов до (encoded_image_size, encoded_image_size)
+        # Reseize size to (encoded_image_size, encoded_image_size)
         out = self.pooling(out)  # (batch_size, 2048, encoded_image_size, encoded_image_size)
-        # Переставляем местами размерности (просто для удобства)
+        # Change dimension places (just for convinience)
         out = out.permute(0, 2, 3, 1)  # (batch_size, encoded_image_size, encoded_image_size, 2048)
         return out
 
@@ -36,19 +40,23 @@ class Attention(nn.Module):
     def __init__(self, word_embeddings_dim, attention_dim, encoded_image_size):
         super(Attention, self).__init__()
 
+        # Attention layer for encoder
         self.att_encoder = nn.Linear(2048, attention_dim)
+        # Attention layer for decoder
         self.att_decoder = torch.nn.Linear(word_embeddings_dim, attention_dim)
+        # Final layer of attention
         self.att_final = torch.nn.Linear(attention_dim, 1)
         self.softmax = nn.Softmax(dim = 1)
         self.relu = nn.ReLU()
 
-    def forward(self, encoder_out, decoder_out, batch_size):
+    def forward(self, encoder_out, decoder_out):
+
         att_encoder_computed = self.att_encoder(encoder_out)  # (batch_size, encoded_image_size**2, attention_dim)
         att_decoder_computed = self.att_decoder(decoder_out)  # (batch_size, attention_dim)
         att = self.att_final(self.relu(att_encoder_computed + att_decoder_computed.unsqueeze(1))).squeeze(2)  # (batch_size, encoded_image_size**2)
         att_weights = self.softmax(att)  # (batch_size, 2048)
-
         encoder_weighted = (encoder_out * att_weights.unsqueeze(2)).sum(dim=1)  # (batch_size, encoder_dim)
+
         return encoder_weighted
 
 
@@ -62,13 +70,11 @@ class Decoder(nn.Module):
         self.word_embeddings_dim = word_embeddings_dim
         self.vocab_size = vocab_size
         self.encoded_image_size = encoded_image_size
-
         self.LSTMCell = torch.nn.LSTMCell(2048 + word_embeddings_dim,
                                           hidden_size=decoder_hidden_size, bias = True)
         self.embedding = nn.Embedding(num_embeddings=vocab_size, embedding_dim=word_embeddings_dim)
         self.Attention = Attention(word_embeddings_dim, attention_dim, encoded_image_size)
         self.linear = torch.nn.Linear(decoder_hidden_size, vocab_size)
-
         self.h_init = torch.nn.Linear(2048, decoder_hidden_size)
         self.c_init = torch.nn.Linear(2048, decoder_hidden_size)
         self.f_beta = nn.Linear(decoder_hidden_size, 2048)  # linear layer to create a sigmoid-activated gate

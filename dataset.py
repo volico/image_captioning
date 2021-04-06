@@ -7,32 +7,28 @@ import torchvision.transforms as transforms
 
 
 class CaptionDataset(Dataset):
-    """
-    A PyTorch Dataset class to be used in a PyTorch DataLoader to create batches.
-    """
 
-    def __init__(self, data_folder, split, transform=None):
-        """
-        :param data_folder: folder where data files are stored
-        :param split: split, one of 'TRAIN', 'VAL', or 'TEST'
-        :param transform: image transform pipeline
-        """
+    def __init__(self, data_folder, split):
+        '''
+        :param data_folder: Folder where files are stored
+        :param split: which split of dataset (train, validation or test)
+        '''
         self.split = split
         assert self.split in {'TRAIN', 'VAL', 'TEST'}
 
         # Open hdf5 file where images are stored
-        self.h = h5py.File(os.path.join(data_folder, self.split + '_IMAGES_' + 'coco.hdf5'), 'r')
+        self.h = h5py.File(os.path.join(data_folder, self.split + '_IMAGES_' + 'flickr30k.hdf5'), 'r')
         self.imgs = self.h['images']
 
         # Captions per image
         self.cpi = self.h.attrs['captions_per_image']
 
         # Load encoded captions (completely into memory)
-        with open(os.path.join(data_folder, self.split + '_CAPTIONS_' + 'coco.json'), 'r') as j:
+        with open(os.path.join(data_folder, self.split + '_CAPTIONS_' + 'flickr30k.json'), 'r') as j:
             self.captions = json.load(j)
 
         # Load caption lengths (completely into memory)
-        with open(os.path.join(data_folder, self.split + '_CAPLENS_' + 'coco.json'), 'r') as j:
+        with open(os.path.join(data_folder, self.split + '_CAPLENS_' + 'flickr30k.json'), 'r') as j:
             self.caplens = json.load(j)
 
         # PyTorch transformation pipeline for the image (normalizing, etc.)
@@ -61,4 +57,5 @@ class CaptionDataset(Dataset):
             return img, caption, caplen, all_captions
 
     def __len__(self):
+
         return self.dataset_size

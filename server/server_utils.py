@@ -7,6 +7,11 @@ import cv2
 
 
 def load_models(checkpoint_name):
+    ''' Loading encoder and decoder models
+    :param checkpoint_name:
+    :return: encoder, decoder
+    '''
+
     checkpoint = torch.load(checkpoint_name)
     dec = checkpoint['decoder']
     enc = checkpoint['encoder']
@@ -16,6 +21,10 @@ def load_models(checkpoint_name):
 
 
 def load_wordmap():
+    '''Loading dictionary mapping from word to word index
+    :return: dictionary mapping from word to word index and dictionary from word index to word
+    '''
+
     with open('WORDMAP_COCO.json', 'rb') as f:
         wordmap = json.load(f)
     res = dict((v, k) for k, v in wordmap.items())
@@ -25,6 +34,11 @@ def load_wordmap():
 
 
 def image_preprocessing(image):
+    ''' Resizing image
+    :param image: image as numpy matrix
+    :return: resized image as numpy matrix
+    '''
+
     if len(image.shape) == 2:
         image= image[:, :, np.newaxis]
         image = np.concatenate([image, image, image], axis=2)
@@ -35,6 +49,12 @@ def image_preprocessing(image):
 
 
 def image_normalisation(image, device):
+    ''' Normalize image as imagenet images
+    :param image: image of appropriate size
+    :param device: device on which to store image
+    :return: normalized image
+    '''
+
     image = torch.FloatTensor(image / 255.).unsqueeze(0)
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
@@ -44,7 +64,9 @@ def image_normalisation(image, device):
     return image
 
 def captioning(enc, dec, img, wordmap, device, res):
+
     with torch.no_grad():
+
         enc = enc.eval()
         dec = dec.eval()
         predicted_sentence = []
@@ -53,7 +75,9 @@ def captioning(enc, dec, img, wordmap, device, res):
         h = dec.h_init(encoder_out.mean(dim=1))  # (batch_size, decoder_hidden_size)
         c = dec.c_init(encoder_out.mean(dim=1))  # (batch_size, decoder_hidden_size)
         last_word = torch.tensor(wordmap['<start>']).unsqueeze(0).unsqueeze(0).to(device)
+
         while last_word != wordmap['<end>']:
+
             print(res[int(last_word)])
             predicted_sentence.append(res[int(last_word)])
             # Выбираем эмбеддинг слова, стоящего на позиции last_word
@@ -77,25 +101,32 @@ def captioning(enc, dec, img, wordmap, device, res):
 
 
 def video_to_screenshots(video, path_to_the_saved_frames, period):
+    '''
+    :param video: path to video
+    :param path_to_the_saved_frames: path where to save screenshots from video
+    :param period: save screenshot every period seconds
+    :return: None
+    '''
 
     cam = cv2.VideoCapture(video)
-    frame_per_second = cam.get(cv2.CAP_PROP_FPS)
+    frame_per_second = int(cam.get(cv2.CAP_PROP_FPS))
     currentframe = 0
 
     while (True):
 
-        # reading from frame
+        # Reading frames
         ret, frame = cam.read()
 
-        # if video is still left continue the loop
+        # If there is still video continue
         if ret:
-            #checking if the frame is the one we need
+
+            # Checking if the frame is the one we need
             if currentframe % (period * frame_per_second) == 0:
-                # writing the extracted images
+
+                # Saving screenshot
                 name = path_to_the_saved_frames + '/frame' + str(currentframe) + '.png'
                 cv2.imwrite(name, frame)
-                # increasing counter so that it will
-                # show how many frames are created
             currentframe += 1
+
         else:
             break
