@@ -3,7 +3,6 @@ from torch.utils.data import Dataset
 import h5py
 import json
 import os
-import torchvision.transforms as transforms
 
 
 class CaptionDataset(Dataset):

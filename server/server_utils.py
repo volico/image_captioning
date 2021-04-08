@@ -20,12 +20,12 @@ def load_models(checkpoint_name):
     return enc, dec
 
 
-def load_wordmap():
+def load_wordmap(data_set):
     '''Loading dictionary mapping from word to word index
     :return: dictionary mapping from word to word index and dictionary from word index to word
     '''
 
-    with open('WORDMAP_COCO.json', 'rb') as f:
+    with open('WORDMAP_{}.json'.format(data_set), 'rb') as f:
         wordmap = json.load(f)
     res = dict((v, k) for k, v in wordmap.items())
 

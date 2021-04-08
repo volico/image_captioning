@@ -7,9 +7,9 @@ from os.path import isfile, join
 from server_utils import load_models, load_wordmap, image_preprocessing, image_normalisation, captioning, video_to_screenshots
 import os
 
-
+data_set = 'flickr30k'
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-enc, dec = load_models(checkpoint_name = 'checkpoint_6_0.pth.tar')
+enc, dec = load_models(checkpoint_name = 'model.pth.tar')
 wordmap, res = load_wordmap()
 app = Flask(__name__)
 
