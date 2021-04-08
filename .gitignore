@@ -7,4 +7,6 @@ images
 *.png
 *.mp4
 *.archieve
-*.papers
+/papers
+*.jpg
+*.json
