@@ -8,7 +8,7 @@ import torchvision.transforms as transforms
 
 class CaptionDataset(Dataset):
 
-    def __init__(self, data_folder, split):
+    def __init__(self, data_folder, split, dataset_name, transform):
         '''
         :param data_folder: Folder where files are stored
         :param split: which split of dataset (train, validation or test)
@@ -17,23 +17,22 @@ class CaptionDataset(Dataset):
         assert self.split in {'TRAIN', 'VAL', 'TEST'}
 
         # Open hdf5 file where images are stored
-        self.h = h5py.File(os.path.join(data_folder, self.split + '_IMAGES_' + 'flickr30k.hdf5'), 'r')
+        self.h = h5py.File(os.path.join(data_folder, self.split + '_IMAGES' + '{}.hdf5'.format(dataset_name)), 'r')
         self.imgs = self.h['images']
 
         # Captions per image
         self.cpi = self.h.attrs['captions_per_image']
 
         # Load encoded captions (completely into memory)
-        with open(os.path.join(data_folder, self.split + '_CAPTIONS_' + 'flickr30k.json'), 'r') as j:
+        with open(os.path.join(data_folder, self.split + '_CAPTIONS' + '{}.json'.format(dataset_name)), 'r') as j:
             self.captions = json.load(j)
 
         # Load caption lengths (completely into memory)
-        with open(os.path.join(data_folder, self.split + '_CAPLENS_' + 'flickr30k.json'), 'r') as j:
+        with open(os.path.join(data_folder, self.split + '_CAPLENS' + '{}.json'.format(dataset_name)), 'r') as j:
             self.caplens = json.load(j)
 
         # PyTorch transformation pipeline for the image (normalizing, etc.)
-        self.transform = transforms.Compose([transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                                                  std=[0.229, 0.224, 0.225])])
+        self.transform = transform
 
         # Total number of datapoints
         self.dataset_size = len(self.captions)
