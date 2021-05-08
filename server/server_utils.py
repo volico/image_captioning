@@ -64,44 +64,57 @@ def image_normalisation(image, device):
     return image
 
 def captioning(enc, dec, img, wordmap, device, res):
+    '''Captioning image
+    :param enc: encoder part of model
+    :param dec: decoder part of model
+    :param img: image
+    :param wordmap: dictionary mapping from word to word index
+    :param device: on which device to make computations
+    :param res: dictionary from word index to word
+    :return: predicted captions, encoded image and embedded words of captions
+    '''
 
     with torch.no_grad():
 
         enc = enc.eval()
         dec = dec.eval()
         predicted_sentence = []
+        embedded_words = []
         encoder_out = enc(img)
         encoder_out = encoder_out.view(1, -1, 2048)
-        h = dec.h_init(encoder_out.mean(dim=1))  # (batch_size, decoder_hidden_size)
-        c = dec.c_init(encoder_out.mean(dim=1))  # (batch_size, decoder_hidden_size)
+        h = dec.h_init(encoder_out.mean(dim=1))
+        c = dec.c_init(encoder_out.mean(dim=1))
         last_word = torch.tensor(wordmap['<start>']).unsqueeze(0).unsqueeze(0).to(device)
 
         while last_word != wordmap['<end>']:
 
-            print(res[int(last_word)])
+            # Append last word
             predicted_sentence.append(res[int(last_word)])
-            # Выбираем эмбеддинг слова, стоящего на позиции last_word
+            # Obtain embedding of previous word
             decoder_out = dec.embedding(last_word)[:, 0]
-
-            # Механизм внимания
-            encoder_weighted = dec.Attention(batch_size=1,
-                                             encoder_out=encoder_out,
+            # Append embedded word
+            embedded_words.append(decoder_out[0].tolist())
+            # Attention mechanism
+            encoder_weighted = dec.Attention(encoder_out=encoder_out,
                                              decoder_out=decoder_out)
+            gate = dec.sigmoid(dec.f_beta(h))
+            encoder_weighted = gate * encoder_weighted
 
-            # Конкатенируем информцию из механизма внимания и информацию о предыдущем слове
+            # Concatenating attention and previous word
             decoder_in = torch.cat((encoder_weighted, decoder_out), 1)
 
-            # Предсказываем вероятности появления слов на текущей позиции
-            h, c = dec.LSTMCell(decoder_in, (h, c))  # (batch_size, decoder_hidden_size)
-            predictions_word = dec.linear(h)  # (batch_size, decoder_hidden_size)
+            # Obtaining probabilities (not exectaly, because no softmax on this step) of word appearing on this step
+            h, c = dec.LSTMCell(decoder_in, (h, c))
+            predictions_word = dec.linear(h)
+            # Get word with maximum probability
             maxword = torch.argmax(predictions_word)
             last_word = maxword.unsqueeze(0).unsqueeze(0).to(device)
 
-    return predicted_sentence, encoder_out
+    return predicted_sentence, encoder_out, embedded_words
 
 
 def video_to_screenshots(video, path_to_the_saved_frames, period):
-    '''
+    ''' Extracting screenshots from video
     :param video: path to video
     :param path_to_the_saved_frames: path where to save screenshots from video
     :param period: save screenshot every period seconds

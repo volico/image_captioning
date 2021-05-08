@@ -1,0 +1,5 @@
+services:
+  image_captioning:
+    build: .
+    ports:
+      - 8888:1567

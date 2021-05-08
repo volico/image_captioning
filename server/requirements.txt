@@ -7,3 +7,4 @@ h5py
 imageio
 torchvision
 torch
+opencv-contrib-python
