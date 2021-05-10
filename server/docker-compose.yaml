@@ -1,5 +1,9 @@
 services:
-  image_captioning:
-    build: .
+  shiny_app:
+    build: shiny_app/
     ports:
-      - 8888:1567
+      - 3838:3838
+  captioning_model:
+    build: captioning_model/
+    ports:
+      - 8888:8888
