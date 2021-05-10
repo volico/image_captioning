@@ -17,6 +17,16 @@ import model
 def load_models(checkpoint_name=None, encoded_image_size=None,
                 word_embeddings_dim=None, attention_dim=None,
                 decoder_hidden_size=None, vocab_size=None, device=None):
+    '''
+    :param checkpoint_name: name of checkpoint file
+    :param encoded_image_size: params to initialize model if there is no checkpoint name
+    :param word_embeddings_dim: params to initialize model if there is no checkpoint name
+    :param attention_dim: params to initialize model if there is no checkpoint name
+    :param decoder_hidden_size: params to initialize model if there is no checkpoint name
+    :param vocab_size: params to initialize model if there is no checkpoint name
+    :param device: on this device to store model
+    :return: start_epoch, end_epoch, loss_fn, enc, dec, optimizer_encoder, optimizer_decoder
+    '''
     loss_fn = nn.CrossEntropyLoss().to(device)
     end_epoch = 10_000
     if checkpoint_name == None:
