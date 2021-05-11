@@ -13,8 +13,8 @@ RUN apt-get update && \
     	r-cran-tidyr\
     	r-cran-ggplot2\
     	r-cran-plotly\
-    	r-cran-shinythemes
-
+    	r-cran-shinythemes\
+    	r-cran-lsa
 RUN R -e 'install.packages("DT")'
 RUN R -e 'install.packages("kableExtra")'
 COPY app.R app.R

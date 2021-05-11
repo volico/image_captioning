@@ -4,7 +4,7 @@ from imageio import imread
 import torch
 from os import listdir
 from os.path import isfile, join
-from server_utils import load_models, load_wordmap, image_preprocessing, image_normalisation, captioning, video_to_screenshots
+from server_utils import *
 import os
 
 data_set = 'coco'
@@ -69,8 +69,16 @@ def get_video_captions():
         return jsonify('No video file in post requests')
 
     if no_video == False:
+        # Every N second of video will be saved as screenshot
+        every_n_second = request.args.get('every_n_second', default = 10, type = int)
+        # Distance metric to calculate
+        metric = request.args.get('metric', default = 'euclidean', type = str)
+        # Rolling window size to calculate previous mean of embeddings
+        rolling_window_size = request.args.get('rolling_window_size', default = 3, type = int)
+
         # Saving screenshots from video
-        names = video_to_screenshots('videos/{}.mp4'.format(video_hash), 'saved_screenshots', 10, video_hash)
+        names = video_to_screenshots('videos/{}.mp4'.format(video_hash),
+                                     'saved_screenshots', every_n_second, video_hash)
         all_captions = []
         all_encoders_out = []
         all_embedded_words = []
@@ -86,10 +94,14 @@ def get_video_captions():
                 all_captions.append(' '.join(predicted_captions[1:]))
                 all_encoders_out.append(encoder_out.tolist())
                 all_embedded_words.append(embedded_words)
+
+        distance_from_previous = compute_distance(all_embedded_words, rolling_window_size, metric)
         # Return captions, encoded image and embedded words
-        return jsonify({'captions': all_captions,
-                        'encoders_out': all_encoders_out,
-                        'embedded_words': all_embedded_words})
+        return jsonify({
+                        'captions': all_captions,
+#                        'encoders_out': all_encoders_out,
+#                        'embedded_words': all_embedded_words,
+                        'distance_from_previous': list(distance_from_previous)})
 
 @app.route('/get_captions', methods=['POST', 'GET'])
 def get_captions():
@@ -132,4 +144,4 @@ def get_captions():
         '''
 
 if __name__ == '__main__':
-    app.run(host = "0.0.0.0", port = "8888", debug = True)
+    app.run(host = "0.0.0.0", port = "6666", debug = True)

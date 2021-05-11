@@ -4,6 +4,7 @@ import numpy as np
 import torchvision.transforms as transforms
 import PIL
 import cv2
+import pandas as pd
 
 
 def load_models(checkpoint_name):
@@ -146,3 +147,61 @@ def video_to_screenshots(video, path_to_the_saved_frames, period, video_hash):
         else:
             break
     return names
+
+def compute_distance(all_embedded_words, N, metric):
+    '''Calculating distance between current embedding and N previous embeddings
+    :param all_embedded_words: embeddings of words in captions
+    :param N: rolling window size
+    :param metric: distance metric to calculate (either euclidian or 1/cosine similarity)
+    :return:
+    '''
+
+    # Constructing dataframe with embeddings
+    embedded_sentences = []
+    for caption in all_embedded_words:
+        embedded_sentences.append(np.array(caption).mean(axis=0))
+    embedded_sentences = pd.DataFrame(embedded_sentences)
+
+    # Calculate euclidian distance
+    if metric == 'euclidean':
+
+        def rolling_squared(x):
+
+            previous_mean = x[:-1].mean(axis=0)
+            current = x[-1]
+            squared= (current - previous_mean) ** 2
+            return squared
+
+        distance_from_previous = np.sqrt(
+            embedded_sentences.rolling(N).apply(rolling_squared, raw=True).fillna(0).values.sum(axis=1))
+
+        return distance_from_previous
+
+    # calculating distance as 1/cosine similarity
+    if metric == 'cosine':
+
+        def rolling_mult(x):
+
+            previous_mean = x[:-1].mean(axis=0)
+            current = x[-1]
+            multiplied= current * previous_mean
+            return multiplied
+
+        def rolling_square_prev(x):
+
+            previous_mean = x[:-1].mean(axis=0)
+            return previous_mean**2
+
+        def rolling_square_cur(x):
+
+            current = x[-1]
+            return current**2
+
+        multiplied = embedded_sentences.rolling(N).apply(rolling_mult, raw=True).fillna(0).values.sum(axis=1)
+        square_prev = (embedded_sentences.rolling(N).apply(rolling_square_prev, raw=True).fillna(0).values.sum(axis=1))
+        square_cur= embedded_sentences.rolling(N).apply(rolling_square_cur, raw=True).fillna(0).values.sum(axis=1)
+        square_prev = np.sqrt(square_prev)
+        square_cur = np.sqrt(square_cur)
+
+        cosine_similarity = multiplied/(square_prev *square_cur)
+        return 1/cosine_similarity

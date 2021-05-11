@@ -8,3 +8,4 @@ imageio
 torchvision
 torch
 opencv-contrib-python
+pandas

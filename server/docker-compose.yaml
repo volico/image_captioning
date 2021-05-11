@@ -3,7 +3,8 @@ services:
     build: shiny_app/
     ports:
       - 3838:3838
+
   captioning_model:
     build: captioning_model/
     ports:
-      - 8888:8888
+      - 8888:6666
