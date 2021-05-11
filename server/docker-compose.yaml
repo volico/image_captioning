@@ -3,8 +3,13 @@ services:
     build: shiny_app/
     ports:
       - 3838:3838
+    mem_limit: 5G
 
   captioning_model:
     build: captioning_model/
     ports:
       - 8888:6666
+    volumes:
+      - C:/Users/ieavilov/Desktop/Projects/Image_captioning/server/captioning_model/videos:/videos
+      - C:/Users/ieavilov/Desktop/Projects/Image_captioning/server/captioning_model/images:/images
+    mem_limit: 16G
