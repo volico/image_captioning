@@ -41,8 +41,14 @@
 1. A group of cows are grazing in a field
 ![A group of cows are grazing in a field](https://sun9-31.userapi.com/impg/pb6wXXMsVoh1DtPo_pE-3ZnDOSskyLQ5PkjAgw/z7pmZYR-EcM.jpg?size=2560x1440&quality=96&sign=d9f1451eefca4918d0945d0f453a5ca3&type=album)
 2. A city street with a car parked on the side of the road
-![A group of cows are grazing in a field](https://sun9-59.userapi.com/impg/7zIOiTroHQiYArLx_c3_jpCMlN8D_RHd5T-1Mw/iLM1FbDC9eU.jpg?size=913x567&quality=96&sign=c5e4ceb6165880a72fa19658c077dad3&type=album)
+![A city street with a car parked on the side of the road](https://sun9-59.userapi.com/impg/7zIOiTroHQiYArLx_c3_jpCMlN8D_RHd5T-1Mw/iLM1FbDC9eU.jpg?size=913x567&quality=96&sign=c5e4ceb6165880a72fa19658c077dad3&type=album)
 
+При этом для изображений под углом часто получаются плохие описания. Это происходит, потому что модель
+была обучена на изображениях, снятых параллельно земле.
+
+Пример:
+1. A train on a track with a train on it
+![A train on a track with a train on it](https://sun9-41.userapi.com/impg/wEHEAlN7J0IT6SNXBmZK8skNKrmTHqc578qZ1A/5sQR7A9pyHQ.jpg?size=1920x1080&quality=96&sign=689f532cab1c5fb9a3c9a30ee5d59078&type=album)
 
 
 При анализе видео для нахождения непохожих друг на друга кадров 
