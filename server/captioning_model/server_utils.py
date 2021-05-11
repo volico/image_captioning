@@ -13,7 +13,7 @@ def load_models(checkpoint_name):
     :return: encoder, decoder
     '''
 
-    checkpoint = torch.load(checkpoint_name, map_location = torch.device('cpu'))
+    checkpoint = torch.load(checkpoint_name)
     dec = checkpoint['decoder']
     enc = checkpoint['encoder']
     del checkpoint

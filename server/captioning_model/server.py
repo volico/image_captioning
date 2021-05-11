@@ -6,6 +6,7 @@ from os import listdir
 from os.path import isfile, join
 from server_utils import *
 import os
+from waitress import serve
 
 data_set = 'coco'
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -144,4 +145,4 @@ def get_captions():
         '''
 
 if __name__ == '__main__':
-    app.run(host = "0.0.0.0", port = "6666", debug = True)
+    serve(app, host = "0.0.0.0", port = "6666")

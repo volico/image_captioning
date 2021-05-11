@@ -9,3 +9,4 @@ torchvision
 torch
 opencv-contrib-python
 pandas
+waitress
