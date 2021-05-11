@@ -113,7 +113,7 @@ def captioning(enc, dec, img, wordmap, device, res):
     return predicted_sentence, encoder_out, embedded_words
 
 
-def video_to_screenshots(video, path_to_the_saved_frames, period):
+def video_to_screenshots(video, path_to_the_saved_frames, period, video_hash):
     ''' Extracting screenshots from video
     :param video: path to video
     :param path_to_the_saved_frames: path where to save screenshots from video
@@ -124,6 +124,7 @@ def video_to_screenshots(video, path_to_the_saved_frames, period):
     cam = cv2.VideoCapture(video)
     frame_per_second = int(cam.get(cv2.CAP_PROP_FPS))
     currentframe = 0
+    names = []
 
     while (True):
 
@@ -137,9 +138,11 @@ def video_to_screenshots(video, path_to_the_saved_frames, period):
             if currentframe % (period * frame_per_second) == 0:
 
                 # Saving screenshot
-                name = path_to_the_saved_frames + '/frame' + str(currentframe) + '.png'
+                name = path_to_the_saved_frames + '/{}_'.format(str(video_hash)) + 'frame' + str(currentframe) + '.png'
                 cv2.imwrite(name, frame)
+                names.append(name)
             currentframe += 1
 
         else:
             break
+    return names

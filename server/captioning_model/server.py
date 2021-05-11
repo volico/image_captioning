@@ -70,16 +70,15 @@ def get_video_captions():
 
     if no_video == False:
         # Saving screenshots from video
-        video_to_screenshots('videos/{}.mp4'.format(video_hash), 'saved_screenshots', 10)
-        list_of_files = [f for f in listdir('saved_screenshots') if isfile(join('saved_screenshots', f))]
+        names = video_to_screenshots('videos/{}.mp4'.format(video_hash), 'saved_screenshots', 10, video_hash)
         all_captions = []
         all_encoders_out = []
         all_embedded_words = []
 
-        for file in list_of_files:
+        for file in names:
             # Getting captions for each saved screenshot
-            image = imread('saved_screenshots/' + file)
-            os.remove('saved_screenshots/' + file)
+            image = imread(file)
+            os.remove(file)
             image = image_preprocessing(image)
             if (image.shape == (3, 256, 256)) & (np.max(image) <= 256):
                 image = image_normalisation(image, device)
