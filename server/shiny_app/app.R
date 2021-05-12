@@ -12,6 +12,9 @@ library(plotly)
 library(shinythemes)
 library(DT)
 library(lsa)
+library(lubridate)
+library(scales)
+library(Hmisc)
 
 options(shiny.maxRequestSize=1024*1024^2)
 def_video="/Users/simon/Desktop/for_shiny/Pig.mp4"
@@ -38,18 +41,20 @@ ui <- tagList(
                    }
                    
                    "),
-        sliderInput("diff_value", "Establish the coefficient of similarity", 0, 1, 1),
+        sliderInput("diff_value", "Establish the coefficient of similarity", 0, 1, 0),
         actionButton("action","Start the analysis", icon("angle-double-right"), 
                      style="color: #fff; background-color: #337ab7; border-color: #2e6da4"),
         hr(),
         p('Hi there! Welcome to "Image Captioning" application. Here you can check your video 
           recordings for strange moments (when something irregular happens). You do not need to 
           watch tones of video by yourself anymore. In the graph on the right you will see 
-          the comparisons of each 10th second`s frame with the previous one. If a dot is too low,
+          the comparisons of each 10th second`s frame with the previous ones. If a dot is too high,
           probably something extraordinary occured in a video. Place the cursor in a dot and
           get an approximate description of the frame. The table with all decriptions 
-          is above the graph. For the example, you can see the analysis of the "Example video" (here we will put the link).
-          Please, wait until the panel answer "Analysis is done" below the graph. Thank you for using "Image Captioning!"'),
+          is above the graph.'),
+         p('You can see the analysis of the "Example video" (here we will put the link). If you want do check your own video press the "Browse" button.
+         Be patient - loading may take some time. Please, wait until the panel answer "Analysis is done" below the graph.'),
+        p('Thank you for using "Image Captioning!"'),
         
         actionButton("action2","About us", icon("address-card"), 
                      style="color: #fff; background-color: #337ab7; border-color: #2e6da4"),
@@ -123,32 +128,26 @@ server <- function(input, output) {
     caption <- z$captions
     data <- data.frame(caption, stringsAsFactors = FALSE)
     data$id <- as.numeric(rownames(data))
+    data$caption <- capitalize(data$caption)
     data
     
   })
   
   CaptDataFull <- reactive({
-    caption_data <- CaptData()
+    caption_data_full <- CaptData()
     y <- List()
-    caption_text <- caption_data
     
-    means_of_embedded_words = matrix(0, nrow = length(y$embedded_words), ncol = 512)
+    caption_data_full$distance <- y$distance_from_previous
     
-    for (x in 1:length(y$embedded_words)) {
-      means_of_embedded_words[x, ] = unlist(colMeans(y$embedded_words[[x]]))
-    } 
-    em_sim = lsa::cosine(t(means_of_embedded_words))
-    diag(em_sim) = 0
+    caption_data_full$values <- scales::rescale(caption_data_full$distance)
+
+    caption_data_full$time <- (caption_data_full$id-1)*10
     
-    cosines_test = em_sim
+    caption_data_full$time <- as.duration(caption_data_full$time)
     
-    cosines_test <- cosines_test[,-1]
-    values <- diag(cosines_test)
-    values <- data.frame(values)
-    values$id <- as.numeric(rownames(values))+1
+    caption_data_full$time <- seconds_to_period(caption_data_full$time)
     
-    caption_data_full <- left_join(caption_data, values)
-    caption_data_full$values <- replace_na(caption_data_full$values, 0)
+    caption_data_full$time <- sprintf('%02d:%02d', minute(caption_data_full$time), second(caption_data_full$time))
     
     caption_data_full
     
@@ -158,13 +157,16 @@ server <- function(input, output) {
   output$interestingTable <- renderDataTable({
     table <- CaptDataFull()
     table$id <- as.character(table$id)
-    table %>% select(id, caption, values) %>% filter(values <= input$diff_value)
+    table %>% select(time, caption, distance, values) %>% filter(values >= input$diff_value) %>% 
+      datatable(colnames = c("Timing", "Caption", "Euclidean distance", "Scaled distance"), 
+                rownames = FALSE, class = 'cell-border hover', 
+                caption = htmltools::tags$caption("The most interesting moments", style = 'caption-side: top; text-align: left; color:white; font-size: 20px;'))
   })
   
   output$interestingPlot <- renderPlotly({
     
     plot_data <- CaptDataFull()
-    diff_graph <- ggplot(plot_data, aes(id, values)) +
+    diff_graph <- ggplot(plot_data, aes(time, values, group = 1)) +
       geom_line(color = "#dd6818", size = 0.5) +
       geom_point(stat = "identity", size = 1, color = "#dd6818") +
       theme(axis.text.x = element_text(angle = 45, hjust = 1, colour = "white"), 
@@ -174,19 +176,22 @@ server <- function(input, output) {
             panel.grid.minor = element_line(colour = "#2b3e4f"),
             panel.border = element_rect(colour = "black", fill=NA, size=0.5),
             plot.background = element_rect(fill = "#2b3e4f"),
+            plot.title = element_text(colour = "white"),
             axis.title.x = element_text(colour = "white"),
-            axis.title.y = element_text(colour = "white"))+
-      scale_x_continuous(name = "Номер момента", breaks = seq(1, nrow(plot_data)+1, 1)) +
-      ylab("Похожесть момента на предыдущий")
+            axis.title.y = element_text(colour = "white")) +
+      xlab("Timing") +
+      ylab("Similarity coefficient") +
+      ggtitle("Plot of similarity to the previous moments")
     plotly::style(diff_graph, text = plot_data$caption)
     
   })
+  
   output$done=renderText('Analysis is done')
   
   
   
 }
 
-# Run the application
+# Run the application 
 shinyApp(ui = ui, server = server)
 
