@@ -70,6 +70,8 @@ def get_video_captions():
         return jsonify('No video file in post requests')
 
     if no_video == False:
+        # Every N second of video will be saved as screenshot
+        every_n_second = request.args.get('every_n_second', default=10, type=int)
         # Distance metric to calculate
         metric = request.args.get('metric', default = 'euclidean', type = str)
         # Rolling window size to calculate previous mean of embeddings
@@ -77,7 +79,7 @@ def get_video_captions():
 
         # Saving screenshots from video
         names = video_to_screenshots('videos/{}.mp4'.format(video_hash),
-                                     'saved_screenshots', video_hash)
+                                     'saved_screenshots', every_n_second,  video_hash)
         all_captions = []
         all_encoders_out = []
         all_embedded_words = []

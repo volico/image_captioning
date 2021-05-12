@@ -14,9 +14,12 @@ RUN apt-get update && \
     	r-cran-ggplot2\
     	r-cran-plotly\
     	r-cran-shinythemes\
-    	r-cran-lsa
+    	r-cran-lsa\
+    	r-cran-scales\
+    	r-cran-lubridate
 RUN R -e 'install.packages("DT")'
 RUN R -e 'install.packages("kableExtra")'
+RUN R -e 'install.packages("Hmisc")'
 COPY app.R app.R
 
 CMD ["Rscript", "-e", "shiny::runApp('.', host = '0.0.0.0', port = 3838)"]
