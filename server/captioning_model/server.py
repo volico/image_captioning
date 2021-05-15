@@ -76,6 +76,7 @@ def get_video_captions():
         metric = request.args.get('metric', default = 'euclidean', type = str)
         # Rolling window size to calculate previous mean of embeddings
         rolling_window_size = request.args.get('rolling_window_size', default = 3, type = int)
+        rolling_window_size = rolling_window_size + 1
 
         # Saving screenshots from video
         names = video_to_screenshots('videos/{}.mp4'.format(video_hash),
