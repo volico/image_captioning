@@ -146,9 +146,3 @@
  и выход сверточной нейронной сети.
  
  ## Участники проекта
-- Илья Авилов (www.linkedin/in/ieavilov) - написание и обучение модели, написание flask сервера, обертка flask сервера и shiny
-app в docker и поднятие сервисов
-- Варвара Захарченко (ruslan.basyrov.id@gmail.com) - shiny app
-- Семен Забродин (semenzabrodin@mail.ru) - shiny app
-- Руслан Басыров (ruslan.basyrov.id@gmail.com) - shiny app, связывание shiny app с flask сервисом с помощью запросов, 
-нарезка видео по кадрам
